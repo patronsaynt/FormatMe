@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Soft beige palette. Values are space-separated RGB channels
+   so Tailwind's `rgb(var(--x) / <alpha>)` can apply opacity.
+   Dark mode themes the EDITOR CHROME only — the resume "paper"
+   in the preview stays light at all times.
+   ============================================================ */
+
+:root {
+  --surface: 245 240 232;   /* #F5F0E8 cream page */
+  --panel: 237 228 211;     /* #EDE4D3 sand panel */
+  --elevated: 250 246 239;  /* #FAF6EF raised card */
+  --line: 214 200 178;      /* #D6C8B2 hairline */
+  --ink: 60 50 38;          /* #3C3226 espresso text */
+  --muted: 130 116 96;      /* #827460 taupe text */
+  --accent: 176 124 78;     /* #B07C4E warm caramel */
+  --accent-soft: 222 199 168; /* #DEC7A8 */
+  --preview-bg: 201 186 164; /* #C9BAA4 muted sand behind the page */
+  --shadow: 120 95 60;
+  color-scheme: light;
+}
+
+.dark {
+  --surface: 33 29 24;      /* #211D18 warm charcoal */
+  --panel: 43 38 32;        /* #2B2620 */
+  --elevated: 58 51 42;     /* #3A332A */
+  --line: 74 65 53;         /* #4A4135 */
+  --ink: 240 232 218;       /* #F0E8DA beige text */
+  --muted: 176 162 142;     /* #B0A28E */
+  --accent: 209 165 122;    /* #D1A57A soft caramel */
+  --accent-soft: 90 74 56;
+  --preview-bg: 42 37 31;   /* #2A251F dark brown behind the page */
+  --shadow: 0 0 0;
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: rgb(var(--surface));
+  color: rgb(var(--ink));
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* App-chrome font: bundled Inter via fontsource-style local face */
+@font-face {
+  font-family: "Inter";
+  src: local("Inter"), local("Helvetica Neue"), local("Arial");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+/* Smooth theme transitions on chrome surfaces */
+.theme-anim,
+.theme-anim * {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom scrollbars in the editor pane */
+.scroll-thin::-webkit-scrollbar {
+  width: 9px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: rgb(var(--line));
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--accent-soft));
+  background-clip: content-box;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Inputs share a consistent beige style */
+.field {
+  width: 100%;
+  background: rgb(var(--elevated));
+  border: 1px solid rgb(var(--line));
+  border-radius: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.875rem;
+  color: rgb(var(--ink));
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field::placeholder {
+  color: rgb(var(--muted) / 0.7);
+}
+.field:focus {
+  border-color: rgb(var(--accent));
+  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.16);
+}
+
+.label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(var(--muted));
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+/* Beige range sliders */
+.fm-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: rgb(var(--line));
+  outline: none;
+}
+.fm-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgb(var(--accent));
+  border: 2px solid rgb(var(--elevated));
+  box-shadow: 0 1px 3px rgb(var(--shadow) / 0.4);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+.fm-range::-webkit-slider-thumb:active {
+  transform: scale(1.15);
+}
+.fm-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgb(var(--accent));
+  border: 2px solid rgb(var(--elevated));
+  cursor: pointer;
+}
