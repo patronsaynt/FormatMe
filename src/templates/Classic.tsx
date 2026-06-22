@@ -1,6 +1,7 @@
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import type { Resume } from "../types";
 import { fontFamilyFor, visibleContacts, dateRange, workLocation, metrics } from "./shared";
+import { formatResumeDate } from "../lib/date";
 
 // Classic is intentionally monochrome: all text is black and every dot marker
 // (contact separators and list bullets) shares one uniform style.
@@ -159,7 +160,7 @@ export default function Classic({ resume }: { resume: Resume }) {
                   {c.name}
                   {c.issuer ? ` — ${c.issuer}` : ""}
                 </Text>
-                <Text style={s.meta}>{c.date}</Text>
+                <Text style={s.meta}>{formatResumeDate(c.date)}</Text>
               </View>
             ))}
           </Section>

@@ -1,5 +1,6 @@
 import type { Resume } from "../types";
 import { visibleContacts, dateRange, workLocation } from "../templates/shared";
+import { formatResumeDate } from "../lib/date";
 import { CONTACT_META } from "../types";
 import { saveText, safeBaseName } from "./save";
 
@@ -54,7 +55,11 @@ export function resumeToText(resume: Resume): string {
   if (resume.certifications.length) {
     heading("Certifications");
     for (const c of resume.certifications) {
-      lines.push(`- ${c.name}${c.issuer ? ` — ${c.issuer}` : ""}${c.date ? ` (${c.date})` : ""}`);
+      lines.push(
+        `- ${c.name}${c.issuer ? ` — ${c.issuer}` : ""}${
+          formatResumeDate(c.date) ? ` (${formatResumeDate(c.date)})` : ""
+        }`,
+      );
     }
   }
 

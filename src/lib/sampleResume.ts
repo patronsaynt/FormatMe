@@ -65,7 +65,7 @@ export function makeSampleResume(): Resume {
         id: uid(),
         name: "Nielsen Norman UX Certification",
         issuer: "NN/g",
-        date: "2020",
+        date: { year: 2020 },
         credentialId: "",
       },
     ],

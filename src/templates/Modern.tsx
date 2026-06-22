@@ -1,6 +1,7 @@
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import type { Resume } from "../types";
 import { fontFamilyFor, visibleContacts, dateRange, shade, workLocation, metrics } from "./shared";
+import { formatResumeDate } from "../lib/date";
 
 export default function Modern({ resume }: { resume: Resume }) {
   const family = fontFamilyFor(resume);
@@ -135,7 +136,7 @@ export default function Modern({ resume }: { resume: Resume }) {
                     {c.name}
                     {c.issuer ? ` — ${c.issuer}` : ""}
                   </Text>
-                  <Text style={s.meta}>{c.date}</Text>
+                  <Text style={s.meta}>{formatResumeDate(c.date)}</Text>
                 </View>
               ))}
             </Section>

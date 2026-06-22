@@ -10,6 +10,7 @@ import {
 } from "docx";
 import type { Resume } from "../types";
 import { visibleContacts, dateRange, workLocation } from "../templates/shared";
+import { formatResumeDate } from "../lib/date";
 import { saveBytes, safeBaseName } from "./save";
 
 const ACCENT = "B07C4E";
@@ -148,7 +149,7 @@ export async function exportDocx(resume: Resume): Promise<string | null> {
               size: 19,
             }),
           ],
-          c.date || "",
+          formatResumeDate(c.date),
         ),
       );
     }

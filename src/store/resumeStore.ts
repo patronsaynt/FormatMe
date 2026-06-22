@@ -146,7 +146,7 @@ export const useResume = create<ResumeState>()(
             ...s.resume,
             certifications: [
               ...s.resume.certifications,
-              { id: uid(), name: "", issuer: "", date: "", credentialId: "" },
+              { id: uid(), name: "", issuer: "", date: {}, credentialId: "" },
             ],
           },
         })),
@@ -208,6 +208,11 @@ export const useResume = create<ResumeState>()(
           };
           fix((state.resume.work ?? []) as never);
           fix((state.resume.education ?? []) as never);
+          for (const c of state.resume.certifications ?? []) {
+            const cert = c as { date: unknown };
+            if (typeof cert.date === "string") cert.date = parseLegacyDate(cert.date);
+            if (cert.date == null) cert.date = {};
+          }
         }
         return state;
       },

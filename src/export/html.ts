@@ -1,5 +1,6 @@
 import type { Resume } from "../types";
 import { visibleContacts, dateRange, workLocation } from "../templates/shared";
+import { formatResumeDate } from "../lib/date";
 import { getFont } from "../fonts/registry";
 import { saveText, safeBaseName } from "./save";
 
@@ -52,7 +53,7 @@ export function resumeToHtml(resume: Resume): string {
     .map(
       (c) =>
         `<div class="row"><span>${esc(c.name + (c.issuer ? ` — ${c.issuer}` : ""))}</span>
-         <span class="meta">${esc(c.date || "")}</span></div>`,
+         <span class="meta">${esc(formatResumeDate(c.date))}</span></div>`,
     )
     .join("");
 

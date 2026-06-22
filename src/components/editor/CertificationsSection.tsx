@@ -2,6 +2,7 @@ import { Award, Plus, Trash2 } from "lucide-react";
 import { useResume } from "../../store/resumeStore";
 import { SectionCard, Field, IconButton, Button } from "../common/ui";
 import { SortableList } from "../common/SortableList";
+import { DateField } from "./DateField";
 
 export function CertificationsSection() {
   const certs = useResume((s) => s.resume.certifications);
@@ -45,11 +46,10 @@ export function CertificationsSection() {
                   placeholder="Amazon"
                   onChange={(e) => updateCertification(c.id, { issuer: e.target.value })}
                 />
-                <Field
+                <DateField
                   label="Date"
-                  value={c.date ?? ""}
-                  placeholder="2023"
-                  onChange={(e) => updateCertification(c.id, { date: e.target.value })}
+                  value={c.date}
+                  onChange={(d) => updateCertification(c.id, { date: d })}
                 />
                 <Field
                   label="Credential ID"
