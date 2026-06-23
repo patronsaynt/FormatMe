@@ -5,9 +5,9 @@ A simple, intuitive desktop resume builder and editor. Create, customize, and ex
 
 ## Features
 
-✨ **Multiple Templates** — Choose from professionally-designed resume templates (Classic, Modern, TwoColumn) to match your style
+Choose from professional resume templates (Classic, Modern, TwoColumn) to fit the needs of your work opportunities
 
-📝 **Intuitive Editor** — Edit all sections of your resume with real-time preview updates, including:
+Edit all sections of your resume with a real-time preview, including:
   - Personal information
   - Work experience
   - Education
@@ -15,13 +15,7 @@ A simple, intuitive desktop resume builder and editor. Create, customize, and ex
   - Custom sections
   - Formatting options
 
-🎨 **Live Preview** — See your changes instantly as you edit
-
-📄 **Export Options** — Save your resume as:
-  - PDF (perfect for printing and emailing)
-  - DOCX (editable in Microsoft Word)
-
-📥 **Import Existing Resumes** — Parse and import resume data to jumpstart your editing
+**Import Existing Resumes** — Parse and import resume data to jumpstart your editing, or save your progress and pickup later
 
 🔄 **Drag & Drop** — Reorder sections and items effortlessly to organize your resume your way
 
