@@ -10,7 +10,7 @@ import type {
   ResumeMeta,
   ResumeFooter,
 } from "../types";
-import { CONTACT_META } from "../types";
+import { CONTACT_META, DEFAULT_SECTION_ORDER, orderedSections } from "../types";
 import { uid } from "../lib/id";
 import { makeSampleResume } from "../lib/sampleResume";
 import { parseLegacyDate } from "../lib/date";
@@ -28,6 +28,9 @@ interface ResumeState {
   // generic list ops
   reorder: (key: ListKey, from: number, to: number) => void;
   remove: (key: ListKey, id: string) => void;
+
+  // document section ordering
+  reorderSections: (from: number, to: number) => void;
 
   // typed adders / updaters
   addWork: () => void;
@@ -78,6 +81,11 @@ export const useResume = create<ResumeState>()(
             ...s.resume,
             [key]: (s.resume[key] as Array<{ id: string }>).filter((x) => x.id !== id),
           },
+        })),
+
+      reorderSections: (from, to) =>
+        set((s) => ({
+          resume: { ...s.resume, sectionOrder: move(orderedSections(s.resume), from, to) },
         })),
 
       addWork: () =>
@@ -193,12 +201,13 @@ export const useResume = create<ResumeState>()(
     }),
     {
       name: "formatme:resume",
-      version: 2,
-      // v1 stored start/end dates as free-text strings; v2 uses structured
-      // ResumeDate objects. Best-effort parse the old strings on load.
+      version: 3,
+      // v1→v2: free-text dates → structured ResumeDate.
+      // v2→v3: add sectionOrder + footer.style defaults.
       migrate: (persisted: unknown, version: number) => {
         const state = persisted as { resume?: Resume };
-        if (version < 2 && state?.resume) {
+        const r = state?.resume as Record<string, unknown> | undefined;
+        if (version < 2 && r) {
           const fix = (entries: Array<{ startDate: unknown; endDate: unknown }>) => {
             for (const e of entries) {
               if (typeof e.startDate === "string") e.startDate = parseLegacyDate(e.startDate);
@@ -206,13 +215,19 @@ export const useResume = create<ResumeState>()(
               if (e.endDate == null) e.endDate = {};
             }
           };
-          fix((state.resume.work ?? []) as never);
-          fix((state.resume.education ?? []) as never);
-          for (const c of state.resume.certifications ?? []) {
-            const cert = c as { date: unknown };
-            if (typeof cert.date === "string") cert.date = parseLegacyDate(cert.date);
-            if (cert.date == null) cert.date = {};
+          fix((r.work ?? []) as never);
+          fix((r.education ?? []) as never);
+          for (const c of (r.certifications ?? []) as Array<{ date: unknown }>) {
+            if (typeof c.date === "string") c.date = parseLegacyDate(c.date);
+            if (c.date == null) c.date = {};
           }
+        }
+        if (version < 3 && r) {
+          if (!Array.isArray(r.sectionOrder) || r.sectionOrder.length === 0) {
+            r.sectionOrder = [...DEFAULT_SECTION_ORDER];
+          }
+          const footer = r.footer as { style?: string } | undefined;
+          if (footer && !footer.style) footer.style = "paragraph";
         }
         return state;
       },

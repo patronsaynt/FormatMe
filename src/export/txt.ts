@@ -1,7 +1,7 @@
-import type { Resume } from "../types";
+import type { Resume, SectionKey } from "../types";
 import { visibleContacts, dateRange, workLocation } from "../templates/shared";
 import { formatResumeDate } from "../lib/date";
-import { CONTACT_META } from "../types";
+import { CONTACT_META, footerItems, orderedSections } from "../types";
 import { saveText, safeBaseName } from "./save";
 
 export function resumeToText(resume: Resume): string {
@@ -27,46 +27,55 @@ export function resumeToText(resume: Resume): string {
     lines.push("", rule, t.toUpperCase(), rule);
   };
 
-  if (resume.summary?.trim()) {
-    heading("Summary");
-    lines.push(resume.summary);
-  }
+  const writers: Record<SectionKey, () => void> = {
+    summary: () => {
+      if (!resume.summary?.trim()) return;
+      heading("Summary");
+      lines.push(resume.summary);
+    },
+    work: () => {
+      if (!resume.work.length) return;
+      heading("Experience");
+      for (const w of resume.work) {
+        lines.push("");
+        lines.push(`${w.title || "Role"}  (${dateRange(w.startDate, w.endDate, w.current)})`);
+        lines.push([w.company, workLocation(w)].filter(Boolean).join(" · "));
+        for (const b of w.bullets.filter((x) => x.trim())) lines.push(`  - ${b}`);
+      }
+    },
+    education: () => {
+      if (!resume.education.length) return;
+      heading("Education");
+      for (const e of resume.education) {
+        lines.push("");
+        lines.push(`${e.school || "School"}  (${dateRange(e.startDate, e.endDate)})`);
+        const d = [e.degree, e.field].filter(Boolean).join(", ") + (e.gpa ? ` · GPA ${e.gpa}` : "");
+        if (d.trim()) lines.push(d);
+      }
+    },
+    certifications: () => {
+      if (!resume.certifications.length) return;
+      heading("Certifications");
+      for (const c of resume.certifications) {
+        lines.push(
+          `- ${c.name}${c.issuer ? ` — ${c.issuer}` : ""}${
+            formatResumeDate(c.date) ? ` (${formatResumeDate(c.date)})` : ""
+          }`,
+        );
+      }
+    },
+    footer: () => {
+      if (!(resume.footer.enabled && resume.footer.content.trim())) return;
+      heading(resume.footer.title || "Interests");
+      if (resume.footer.style === "list") {
+        for (const it of footerItems(resume.footer)) lines.push(`- ${it}`);
+      } else {
+        lines.push(resume.footer.content);
+      }
+    },
+  };
 
-  if (resume.work.length) {
-    heading("Experience");
-    for (const w of resume.work) {
-      lines.push("");
-      lines.push(`${w.title || "Role"}  (${dateRange(w.startDate, w.endDate, w.current)})`);
-      lines.push([w.company, workLocation(w)].filter(Boolean).join(" · "));
-      for (const b of w.bullets.filter((x) => x.trim())) lines.push(`  - ${b}`);
-    }
-  }
-
-  if (resume.education.length) {
-    heading("Education");
-    for (const e of resume.education) {
-      lines.push("");
-      lines.push(`${e.school || "School"}  (${dateRange(e.startDate, e.endDate)})`);
-      const d = [e.degree, e.field].filter(Boolean).join(", ") + (e.gpa ? ` · GPA ${e.gpa}` : "");
-      if (d.trim()) lines.push(d);
-    }
-  }
-
-  if (resume.certifications.length) {
-    heading("Certifications");
-    for (const c of resume.certifications) {
-      lines.push(
-        `- ${c.name}${c.issuer ? ` — ${c.issuer}` : ""}${
-          formatResumeDate(c.date) ? ` (${formatResumeDate(c.date)})` : ""
-        }`,
-      );
-    }
-  }
-
-  if (resume.footer.enabled && resume.footer.content.trim()) {
-    heading(resume.footer.title || "Interests");
-    lines.push(resume.footer.content);
-  }
+  for (const k of orderedSections(resume)) writers[k]();
 
   return lines.join("\n") + "\n";
 }

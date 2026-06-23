@@ -8,7 +8,8 @@ import {
   TabStopPosition,
   BorderStyle,
 } from "docx";
-import type { Resume } from "../types";
+import type { Resume, SectionKey } from "../types";
+import { footerItems, orderedSections } from "../types";
 import { visibleContacts, dateRange, workLocation } from "../templates/shared";
 import { formatResumeDate } from "../lib/date";
 import { saveBytes, safeBaseName } from "./save";
@@ -82,85 +83,91 @@ export async function exportDocx(resume: Resume): Promise<string | null> {
     );
   }
 
-  if (resume.summary?.trim()) {
-    children.push(sectionHeading("Summary"));
-    children.push(new Paragraph({ children: [new TextRun({ text: resume.summary, size: 19 })] }));
-  }
+  const writers: Record<SectionKey, () => void> = {
+    summary: () => {
+      if (!resume.summary?.trim()) return;
+      children.push(sectionHeading("Summary"));
+      children.push(
+        new Paragraph({ children: [new TextRun({ text: resume.summary, size: 19 })] }),
+      );
+    },
+    work: () => {
+      if (!resume.work.length) return;
+      children.push(sectionHeading("Experience"));
+      for (const w of resume.work) {
+        children.push(
+          rightTabbed(
+            [new TextRun({ text: w.title || "Role", bold: true, size: 21 })],
+            dateRange(w.startDate, w.endDate, w.current),
+          ),
+        );
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: [w.company, workLocation(w)].filter(Boolean).join("  ·  "),
+                italics: true,
+                size: 19,
+                color: "333333",
+              }),
+            ],
+          }),
+        );
+        for (const b of w.bullets.filter((x) => x.trim())) children.push(bullet(b));
+      }
+    },
+    education: () => {
+      if (!resume.education.length) return;
+      children.push(sectionHeading("Education"));
+      for (const e of resume.education) {
+        children.push(
+          rightTabbed(
+            [new TextRun({ text: e.school || "School", bold: true, size: 21 })],
+            dateRange(e.startDate, e.endDate),
+          ),
+        );
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text:
+                  [e.degree, e.field].filter(Boolean).join(", ") +
+                  (e.gpa ? `  ·  GPA ${e.gpa}` : ""),
+                italics: true,
+                size: 19,
+                color: "333333",
+              }),
+            ],
+          }),
+        );
+      }
+    },
+    certifications: () => {
+      if (!resume.certifications.length) return;
+      children.push(sectionHeading("Certifications"));
+      for (const c of resume.certifications) {
+        children.push(
+          rightTabbed(
+            [new TextRun({ text: c.name + (c.issuer ? ` — ${c.issuer}` : ""), size: 19 })],
+            formatResumeDate(c.date),
+          ),
+        );
+      }
+    },
+    footer: () => {
+      if (!(resume.footer.enabled && resume.footer.content.trim())) return;
+      children.push(sectionHeading(resume.footer.title || "Interests"));
+      if (resume.footer.style === "list") {
+        for (const it of footerItems(resume.footer)) children.push(bullet(it));
+      } else {
+        children.push(
+          new Paragraph({ children: [new TextRun({ text: resume.footer.content, size: 19 })] }),
+        );
+      }
+    },
+  };
 
-  if (resume.work.length) {
-    children.push(sectionHeading("Experience"));
-    for (const w of resume.work) {
-      children.push(
-        rightTabbed(
-          [new TextRun({ text: w.title || "Role", bold: true, size: 21 })],
-          dateRange(w.startDate, w.endDate, w.current),
-        ),
-      );
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: [w.company, workLocation(w)].filter(Boolean).join("  ·  "),
-              italics: true,
-              size: 19,
-              color: "333333",
-            }),
-          ],
-        }),
-      );
-      for (const b of w.bullets.filter((x) => x.trim())) children.push(bullet(b));
-    }
-  }
-
-  if (resume.education.length) {
-    children.push(sectionHeading("Education"));
-    for (const e of resume.education) {
-      children.push(
-        rightTabbed(
-          [new TextRun({ text: e.school || "School", bold: true, size: 21 })],
-          dateRange(e.startDate, e.endDate),
-        ),
-      );
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text:
-                [e.degree, e.field].filter(Boolean).join(", ") +
-                (e.gpa ? `  ·  GPA ${e.gpa}` : ""),
-              italics: true,
-              size: 19,
-              color: "333333",
-            }),
-          ],
-        }),
-      );
-    }
-  }
-
-  if (resume.certifications.length) {
-    children.push(sectionHeading("Certifications"));
-    for (const c of resume.certifications) {
-      children.push(
-        rightTabbed(
-          [
-            new TextRun({
-              text: c.name + (c.issuer ? ` — ${c.issuer}` : ""),
-              size: 19,
-            }),
-          ],
-          formatResumeDate(c.date),
-        ),
-      );
-    }
-  }
-
-  if (resume.footer.enabled && resume.footer.content.trim()) {
-    children.push(sectionHeading(resume.footer.title || "Interests"));
-    children.push(
-      new Paragraph({ children: [new TextRun({ text: resume.footer.content, size: 19 })] }),
-    );
-  }
+  for (const k of orderedSections(resume)) writers[k]();
 
   const doc = new Document({
     styles: { default: { document: { run: { font: "Times New Roman" } } } },

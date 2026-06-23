@@ -68,7 +68,16 @@ export interface Certification {
 export interface ResumeFooter {
   enabled: boolean;
   title: string; // e.g. "Interests"
-  content: string; // free text / comma list
+  content: string; // paragraph text, or newline-separated items in "list" style
+  style: "paragraph" | "list";
+}
+
+/** Footer items for "list" style — one per non-empty line. */
+export function footerItems(footer: ResumeFooter): string[] {
+  return footer.content
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 export interface ResumeMeta {
@@ -93,6 +102,25 @@ export const LAYOUT_DEFAULTS = {
   letterSpacing: 0,
 } as const;
 
+/** Body sections whose order in the document the user can rearrange. */
+export type SectionKey = "summary" | "work" | "education" | "certifications" | "footer";
+
+export const DEFAULT_SECTION_ORDER: SectionKey[] = [
+  "summary",
+  "work",
+  "education",
+  "certifications",
+  "footer",
+];
+
+export const SECTION_LABEL: Record<SectionKey, string> = {
+  summary: "Summary",
+  work: "Work Experience",
+  education: "Education",
+  certifications: "Certifications",
+  footer: "Footer",
+};
+
 export interface Resume {
   name: string;
   headline?: string; // optional professional title under the name
@@ -102,7 +130,26 @@ export interface Resume {
   education: Education[];
   certifications: Certification[]; // optional — hidden when empty
   footer: ResumeFooter; // optional — hidden unless enabled
+  sectionOrder: SectionKey[]; // order body sections appear in the document
   meta: ResumeMeta;
+}
+
+/** Complete, de-duplicated section order (guards older/partial documents). */
+export function normalizeSectionOrder(order?: SectionKey[]): SectionKey[] {
+  const base = order?.length ? order : DEFAULT_SECTION_ORDER;
+  const seen = new Set<SectionKey>();
+  const result: SectionKey[] = [];
+  for (const k of [...base, ...DEFAULT_SECTION_ORDER]) {
+    if (!seen.has(k)) {
+      seen.add(k);
+      result.push(k);
+    }
+  }
+  return result;
+}
+
+export function orderedSections(resume: Resume): SectionKey[] {
+  return normalizeSectionOrder(resume.sectionOrder);
 }
 
 export const CONTACT_META: Record<

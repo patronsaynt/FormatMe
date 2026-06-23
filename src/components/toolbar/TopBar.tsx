@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  FileText,
   Palette,
   Type as TypeIcon,
   Download,
@@ -9,20 +8,26 @@ import {
   Check,
   ChevronDown,
   FolderOpen,
+  FileUp,
   Save,
   RotateCcw,
   Loader2,
+  FileText,
 } from "lucide-react";
 import { useResume } from "../../store/resumeStore";
 import { useUI } from "../../store/uiStore";
 import { TEMPLATES } from "../../templates/registry";
 import { FONTS } from "../../fonts/registry";
 import { Popover } from "../common/Popover";
+import { Logo } from "../common/Logo";
 import { exportPdf } from "../../export/pdf";
 import { exportDocx } from "../../export/docx";
 import { exportHtml } from "../../export/html";
 import { exportTxt } from "../../export/txt";
 import { exportProject, importProject } from "../../export/project";
+import { importResumeFromPdf } from "../../import/importPdf";
+import { ImportSummary } from "../import/ImportSummary";
+import type { ImportReport } from "../../import/types";
 
 const ACCENTS = ["#B07C4E", "#A8543B", "#3F6F5A", "#3C5A78", "#6B5B95", "#1c1c1c"];
 
@@ -33,6 +38,9 @@ export function TopBar() {
   const resetResume = useResume((s) => s.resetResume);
   const { theme, toggleTheme } = useUI();
   const [busy, setBusy] = useState<string | null>(null);
+  const [importState, setImportState] = useState<{ report: ImportReport; imported: boolean } | null>(
+    null,
+  );
 
   const run = async (kind: string, fn: () => Promise<unknown>) => {
     try {
@@ -46,19 +54,40 @@ export function TopBar() {
     }
   };
 
+  const handleImportPdf = async () => {
+    if (
+      !confirm(
+        "Importing a PDF replaces your current resume with its extracted text.\n\nTip: use Save project first if you want to keep a backup.",
+      )
+    )
+      return;
+    try {
+      setBusy("import");
+      const res = await importResumeFromPdf();
+      if (!res) return; // dialog cancelled
+      if (res.resume) {
+        replaceResume(res.resume);
+        setImportState({ report: res.report, imported: true });
+      } else {
+        setImportState({ report: res.report, imported: false });
+      }
+    } catch (err) {
+      console.error(err);
+      alert(`Import failed: ${String(err)}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const activeTemplate = TEMPLATES.find((t) => t.id === resume.meta.templateId)!;
   const activeFont = FONTS.find((f) => f.id === resume.meta.fontId)!;
 
   return (
+    <>
     <header className="relative z-50 flex items-center gap-2 border-b border-line bg-panel/80 px-4 py-2.5 backdrop-blur">
       {/* Brand */}
       <div className="mr-1 flex items-center gap-2">
-        <div className="grid h-8 w-8 place-items-center rounded-lg bg-accent text-white shadow-soft">
-          <FileText size={17} />
-        </div>
-        <span className="text-[15px] font-bold tracking-tight text-ink">
-          Format<span className="text-accent">Me</span>
-        </span>
+        <Logo height={22} />
       </div>
 
       <div className="mx-1 h-6 w-px bg-line" />
@@ -198,6 +227,16 @@ export function TopBar() {
 
       <div className="flex-1" />
 
+      {/* Import a PDF resume */}
+      <ToolbarButton onClick={() => void handleImportPdf()} title="Import a PDF resume">
+        {busy === "import" ? (
+          <Loader2 size={15} className="animate-spin" />
+        ) : (
+          <FileUp size={15} />
+        )}
+        Import
+      </ToolbarButton>
+
       {/* Project menu */}
       <Popover
         trigger={(open) => (
@@ -295,6 +334,15 @@ export function TopBar() {
         )}
       </Popover>
     </header>
+
+    {importState && (
+      <ImportSummary
+        report={importState.report}
+        imported={importState.imported}
+        onClose={() => setImportState(null)}
+      />
+    )}
+    </>
   );
 }
 

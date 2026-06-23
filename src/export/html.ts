@@ -1,4 +1,5 @@
-import type { Resume } from "../types";
+import type { Resume, SectionKey } from "../types";
+import { footerItems, orderedSections } from "../types";
 import { visibleContacts, dateRange, workLocation } from "../templates/shared";
 import { formatResumeDate } from "../lib/date";
 import { getFont } from "../fonts/registry";
@@ -57,6 +58,25 @@ export function resumeToHtml(resume: Resume): string {
     )
     .join("");
 
+  const bodyByKey: Record<SectionKey, string> = {
+    summary: resume.summary?.trim() ? section("Summary", `<p>${esc(resume.summary)}</p>`) : "",
+    work: section("Experience", work),
+    education: section("Education", edu),
+    certifications: section("Certifications", certs),
+    footer:
+      resume.footer.enabled && resume.footer.content.trim()
+        ? section(
+            resume.footer.title || "Interests",
+            resume.footer.style === "list"
+              ? `<ul>${footerItems(resume.footer).map((it) => `<li>${esc(it)}</li>`).join("")}</ul>`
+              : `<p>${esc(resume.footer.content)}</p>`,
+          )
+        : "",
+  };
+  const body = orderedSections(resume)
+    .map((k) => bodyByKey[k])
+    .join("\n  ");
+
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -83,15 +103,7 @@ export function resumeToHtml(resume: Resume): string {
   <h1>${esc(resume.name || "Your Name")}</h1>
   ${resume.headline ? `<p class="headline">${esc(resume.headline)}</p>` : ""}
   ${contacts.length ? `<p class="contacts">${contacts.map((c) => esc(c.value)).join("  •  ")}</p>` : ""}
-  ${resume.summary?.trim() ? section("Summary", `<p>${esc(resume.summary)}</p>`) : ""}
-  ${section("Experience", work)}
-  ${section("Education", edu)}
-  ${section("Certifications", certs)}
-  ${
-    resume.footer.enabled && resume.footer.content.trim()
-      ? section(resume.footer.title || "Interests", `<p>${esc(resume.footer.content)}</p>`)
-      : ""
-  }
+  ${body}
 </body>
 </html>`;
 }

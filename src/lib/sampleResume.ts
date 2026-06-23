@@ -1,5 +1,5 @@
 import type { Resume } from "../types";
-import { LAYOUT_DEFAULTS } from "../types";
+import { LAYOUT_DEFAULTS, DEFAULT_SECTION_ORDER } from "../types";
 import { uid } from "./id";
 
 /** A friendly starter document so the preview is never empty. */
@@ -73,7 +73,9 @@ export function makeSampleResume(): Resume {
       enabled: true,
       title: "Interests",
       content: "Typography, trail running, film photography, and specialty coffee.",
+      style: "paragraph",
     },
+    sectionOrder: [...DEFAULT_SECTION_ORDER],
     meta: {
       templateId: "classic",
       fontId: "times",

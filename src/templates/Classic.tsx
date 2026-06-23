@@ -1,5 +1,7 @@
+import { Fragment, type ReactNode } from "react";
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
-import type { Resume } from "../types";
+import type { Resume, SectionKey } from "../types";
+import { footerItems, orderedSections } from "../types";
 import { fontFamilyFor, visibleContacts, dateRange, workLocation, metrics } from "./shared";
 import { formatResumeDate } from "../lib/date";
 
@@ -77,6 +79,95 @@ export default function Classic({ resume }: { resume: Resume }) {
     </View>
   );
 
+  const renderers: Record<SectionKey, ReactNode> = {
+    summary: resume.summary?.trim() ? (
+      <Section title="Summary">
+        <Text style={s.summary}>{resume.summary}</Text>
+      </Section>
+    ) : null,
+    work:
+      resume.work.length > 0 ? (
+        <Section title="Experience">
+          {resume.work.map((w) => (
+            <View key={w.id} style={s.entry}>
+              <View style={s.entryHeader}>
+                <Text style={s.role}>{w.title || "Role"}</Text>
+                <Text style={s.meta}>{dateRange(w.startDate, w.endDate, w.current)}</Text>
+              </View>
+              <View style={s.entryHeader}>
+                <Text style={s.org}>
+                  {w.company}
+                  {workLocation(w) ? `  ·  ${workLocation(w)}` : ""}
+                </Text>
+              </View>
+              {w.bullets
+                .filter((b) => b.trim())
+                .map((b, i) => (
+                  <View key={i} style={s.bulletRow}>
+                    <Text style={s.bulletDot}>•</Text>
+                    <Text style={s.bulletText}>{b}</Text>
+                  </View>
+                ))}
+            </View>
+          ))}
+        </Section>
+      ) : null,
+    education:
+      resume.education.length > 0 ? (
+        <Section title="Education">
+          {resume.education.map((e) => (
+            <View key={e.id} style={s.entry}>
+              <View style={s.entryHeader}>
+                <Text style={s.role}>{e.school || "School"}</Text>
+                <Text style={s.meta}>{dateRange(e.startDate, e.endDate)}</Text>
+              </View>
+              <Text style={s.org}>
+                {[e.degree, e.field].filter(Boolean).join(", ")}
+                {e.gpa ? `  ·  GPA ${e.gpa}` : ""}
+              </Text>
+              {e.details
+                .filter((d) => d.trim())
+                .map((d, i) => (
+                  <View key={i} style={s.bulletRow}>
+                    <Text style={s.bulletDot}>•</Text>
+                    <Text style={s.bulletText}>{d}</Text>
+                  </View>
+                ))}
+            </View>
+          ))}
+        </Section>
+      ) : null,
+    certifications:
+      resume.certifications.length > 0 ? (
+        <Section title="Certifications">
+          {resume.certifications.map((c) => (
+            <View key={c.id} style={s.entryHeader}>
+              <Text style={s.bulletText}>
+                {c.name}
+                {c.issuer ? ` — ${c.issuer}` : ""}
+              </Text>
+              <Text style={s.meta}>{formatResumeDate(c.date)}</Text>
+            </View>
+          ))}
+        </Section>
+      ) : null,
+    footer:
+      resume.footer.enabled && resume.footer.content.trim() ? (
+        <Section title={resume.footer.title || "Interests"}>
+          {resume.footer.style === "list" ? (
+            footerItems(resume.footer).map((it, i) => (
+              <View key={i} style={s.bulletRow}>
+                <Text style={s.bulletDot}>•</Text>
+                <Text style={s.bulletText}>{it}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={s.footerText}>{resume.footer.content}</Text>
+          )}
+        </Section>
+      ) : null,
+  };
+
   return (
     <Document title={resume.name || "Resume"} author={resume.name}>
       <Page size={resume.meta.pageSize} style={s.page}>
@@ -94,83 +185,9 @@ export default function Classic({ resume }: { resume: Resume }) {
           </View>
         )}
 
-        {resume.summary?.trim() ? (
-          <Section title="Summary">
-            <Text style={s.summary}>{resume.summary}</Text>
-          </Section>
-        ) : null}
-
-        {resume.work.length > 0 && (
-          <Section title="Experience">
-            {resume.work.map((w) => (
-              <View key={w.id} style={s.entry}>
-                <View style={s.entryHeader}>
-                  <Text style={s.role}>{w.title || "Role"}</Text>
-                  <Text style={s.meta}>{dateRange(w.startDate, w.endDate, w.current)}</Text>
-                </View>
-                <View style={s.entryHeader}>
-                  <Text style={s.org}>
-                    {w.company}
-                    {workLocation(w) ? `  ·  ${workLocation(w)}` : ""}
-                  </Text>
-                </View>
-                {w.bullets
-                  .filter((b) => b.trim())
-                  .map((b, i) => (
-                    <View key={i} style={s.bulletRow}>
-                      <Text style={s.bulletDot}>•</Text>
-                      <Text style={s.bulletText}>{b}</Text>
-                    </View>
-                  ))}
-              </View>
-            ))}
-          </Section>
-        )}
-
-        {resume.education.length > 0 && (
-          <Section title="Education">
-            {resume.education.map((e) => (
-              <View key={e.id} style={s.entry}>
-                <View style={s.entryHeader}>
-                  <Text style={s.role}>{e.school || "School"}</Text>
-                  <Text style={s.meta}>{dateRange(e.startDate, e.endDate)}</Text>
-                </View>
-                <Text style={s.org}>
-                  {[e.degree, e.field].filter(Boolean).join(", ")}
-                  {e.gpa ? `  ·  GPA ${e.gpa}` : ""}
-                </Text>
-                {e.details
-                  .filter((d) => d.trim())
-                  .map((d, i) => (
-                    <View key={i} style={s.bulletRow}>
-                      <Text style={s.bulletDot}>•</Text>
-                      <Text style={s.bulletText}>{d}</Text>
-                    </View>
-                  ))}
-              </View>
-            ))}
-          </Section>
-        )}
-
-        {resume.certifications.length > 0 && (
-          <Section title="Certifications">
-            {resume.certifications.map((c) => (
-              <View key={c.id} style={s.entryHeader}>
-                <Text style={s.bulletText}>
-                  {c.name}
-                  {c.issuer ? ` — ${c.issuer}` : ""}
-                </Text>
-                <Text style={s.meta}>{formatResumeDate(c.date)}</Text>
-              </View>
-            ))}
-          </Section>
-        )}
-
-        {resume.footer.enabled && resume.footer.content.trim() ? (
-          <Section title={resume.footer.title || "Interests"}>
-            <Text style={s.footerText}>{resume.footer.content}</Text>
-          </Section>
-        ) : null}
+        {orderedSections(resume).map((k) => (
+          <Fragment key={k}>{renderers[k]}</Fragment>
+        ))}
       </Page>
     </Document>
   );

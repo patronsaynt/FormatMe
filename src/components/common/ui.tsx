@@ -1,5 +1,76 @@
-import { useState, type ReactNode, type InputHTMLAttributes, type TextareaHTMLAttributes } from "react";
-import { ChevronDown } from "lucide-react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type InputHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+
+/**
+ * A textarea that grows to fit its content on every render (not just while
+ * typing), so values set from state/import expand instead of scrolling.
+ */
+export function AutoTextarea({
+  className = "",
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const border = el.offsetHeight - el.clientHeight; // top+bottom border (border-box)
+    el.style.height = `${el.scrollHeight + border}px`;
+  });
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      className={`field resize-none overflow-hidden ${className}`}
+      {...props}
+    />
+  );
+}
+
+/** Up/down buttons to move an item within a list (click to reorder). */
+export function ReorderArrows({
+  index,
+  count,
+  onMove,
+  className = "",
+}: {
+  index: number;
+  count: number;
+  onMove: (from: number, to: number) => void;
+  className?: string;
+}) {
+  const btn =
+    "grid h-[18px] w-5 place-items-center rounded text-muted/60 transition-colors hover:bg-elevated hover:text-accent disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-muted/60";
+  return (
+    <div className={`flex flex-col ${className}`}>
+      <button
+        type="button"
+        title="Move up"
+        disabled={index <= 0}
+        onClick={() => onMove(index, index - 1)}
+        className={btn}
+      >
+        <ChevronUp size={14} />
+      </button>
+      <button
+        type="button"
+        title="Move down"
+        disabled={index >= count - 1}
+        onClick={() => onMove(index, index + 1)}
+        className={btn}
+      >
+        <ChevronDown size={14} />
+      </button>
+    </div>
+  );
+}
 
 export function Field({
   label,

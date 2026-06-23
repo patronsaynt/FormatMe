@@ -1,6 +1,7 @@
+import { Fragment, type ReactNode } from "react";
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
-import type { Resume } from "../types";
-import { CONTACT_META } from "../types";
+import type { Resume, SectionKey } from "../types";
+import { CONTACT_META, footerItems, orderedSections } from "../types";
 import { fontFamilyFor, visibleContacts, dateRange, shade, workLocation, metrics } from "./shared";
 
 export default function TwoColumn({ resume }: { resume: Resume }) {
@@ -56,6 +57,88 @@ export default function TwoColumn({ resume }: { resume: Resume }) {
     bulletText: { flex: 1, fontSize: fs(9), color: "#2b2b2b" },
   });
 
+  // Two-column layout: sidebar holds education/certs/footer, main holds
+  // summary/experience. Each column honors the user's section order, filtered
+  // to the sections that live in that column.
+  const order = orderedSections(resume);
+  const sidebarKeys: SectionKey[] = ["education", "certifications", "footer"];
+  const mainKeys: SectionKey[] = ["summary", "work"];
+
+  const renderers: Partial<Record<SectionKey, ReactNode>> = {
+    education:
+      resume.education.length > 0 ? (
+        <View>
+          <Text style={s.sideTitle}>Education</Text>
+          {resume.education.map((e) => (
+            <View key={e.id} style={{ marginTop: 5 }}>
+              <Text style={s.sideValue}>{e.school}</Text>
+              <Text style={s.sideLabel}>{[e.degree, e.field].filter(Boolean).join(", ")}</Text>
+              <Text style={s.sideLabel}>{dateRange(e.startDate, e.endDate)}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null,
+    certifications:
+      resume.certifications.length > 0 ? (
+        <View>
+          <Text style={s.sideTitle}>Certifications</Text>
+          {resume.certifications.map((c) => (
+            <View key={c.id} style={{ marginTop: 4 }}>
+              <Text style={s.sideValue}>{c.name}</Text>
+              {c.issuer ? <Text style={s.sideLabel}>{c.issuer}</Text> : null}
+            </View>
+          ))}
+        </View>
+      ) : null,
+    footer:
+      resume.footer.enabled && resume.footer.content.trim() ? (
+        <View>
+          <Text style={s.sideTitle}>{resume.footer.title || "Interests"}</Text>
+          {resume.footer.style === "list" ? (
+            footerItems(resume.footer).map((it, i) => (
+              <Text key={i} style={s.sideValue}>
+                • {it}
+              </Text>
+            ))
+          ) : (
+            <Text style={s.sideValue}>{resume.footer.content}</Text>
+          )}
+        </View>
+      ) : null,
+    summary: resume.summary?.trim() ? (
+      <View style={s.section}>
+        <Text style={s.mainTitle}>Profile</Text>
+        <Text style={s.summary}>{resume.summary}</Text>
+      </View>
+    ) : null,
+    work:
+      resume.work.length > 0 ? (
+        <View style={s.section}>
+          <Text style={s.mainTitle}>Experience</Text>
+          {resume.work.map((w) => (
+            <View key={w.id} style={s.entry} wrap={false}>
+              <View style={s.entryHeader}>
+                <Text style={s.role}>{w.title || "Role"}</Text>
+                <Text style={s.meta}>{dateRange(w.startDate, w.endDate, w.current)}</Text>
+              </View>
+              <Text style={s.org}>
+                {w.company}
+                {workLocation(w) ? `  ·  ${workLocation(w)}` : ""}
+              </Text>
+              {w.bullets
+                .filter((b) => b.trim())
+                .map((b, i) => (
+                  <View key={i} style={s.bulletRow}>
+                    <Text style={s.bulletDot}>•</Text>
+                    <Text style={s.bulletText}>{b}</Text>
+                  </View>
+                ))}
+            </View>
+          ))}
+        </View>
+      ) : null,
+  };
+
   return (
     <Document title={resume.name || "Resume"} author={resume.name}>
       <Page size={resume.meta.pageSize} style={s.page}>
@@ -78,75 +161,20 @@ export default function TwoColumn({ resume }: { resume: Resume }) {
             </View>
           )}
 
-          {resume.education.length > 0 && (
-            <View>
-              <Text style={s.sideTitle}>Education</Text>
-              {resume.education.map((e) => (
-                <View key={e.id} style={{ marginTop: 5 }}>
-                  <Text style={s.sideValue}>{e.school}</Text>
-                  <Text style={s.sideLabel}>
-                    {[e.degree, e.field].filter(Boolean).join(", ")}
-                  </Text>
-                  <Text style={s.sideLabel}>{dateRange(e.startDate, e.endDate)}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {resume.certifications.length > 0 && (
-            <View>
-              <Text style={s.sideTitle}>Certifications</Text>
-              {resume.certifications.map((c) => (
-                <View key={c.id} style={{ marginTop: 4 }}>
-                  <Text style={s.sideValue}>{c.name}</Text>
-                  {c.issuer ? <Text style={s.sideLabel}>{c.issuer}</Text> : null}
-                </View>
-              ))}
-            </View>
-          )}
-
-          {resume.footer.enabled && resume.footer.content.trim() ? (
-            <View>
-              <Text style={s.sideTitle}>{resume.footer.title || "Interests"}</Text>
-              <Text style={s.sideValue}>{resume.footer.content}</Text>
-            </View>
-          ) : null}
+          {order
+            .filter((k) => sidebarKeys.includes(k))
+            .map((k) => (
+              <Fragment key={k}>{renderers[k]}</Fragment>
+            ))}
         </View>
 
         {/* Main column */}
         <View style={s.main}>
-          {resume.summary?.trim() ? (
-            <View style={s.section}>
-              <Text style={s.mainTitle}>Profile</Text>
-              <Text style={s.summary}>{resume.summary}</Text>
-            </View>
-          ) : null}
-
-          {resume.work.length > 0 && (
-            <View style={s.section}>
-              <Text style={s.mainTitle}>Experience</Text>
-              {resume.work.map((w) => (
-                <View key={w.id} style={s.entry} wrap={false}>
-                  <View style={s.entryHeader}>
-                    <Text style={s.role}>{w.title || "Role"}</Text>
-                    <Text style={s.meta}>{dateRange(w.startDate, w.endDate, w.current)}</Text>
-                  </View>
-                  <Text style={s.org}>
-                    {w.company}
-                    {workLocation(w) ? `  ·  ${workLocation(w)}` : ""}
-                  </Text>
-                  {w.bullets
-                    .filter((b) => b.trim())
-                    .map((b, i) => (
-                      <View key={i} style={s.bulletRow}>
-                        <Text style={s.bulletDot}>•</Text>
-                        <Text style={s.bulletText}>{b}</Text>
-                      </View>
-                    ))}
-                </View>
-              ))}
-            </View>
-          )}
+          {order
+            .filter((k) => mainKeys.includes(k))
+            .map((k) => (
+              <Fragment key={k}>{renderers[k]}</Fragment>
+            ))}
         </View>
       </Page>
     </Document>
