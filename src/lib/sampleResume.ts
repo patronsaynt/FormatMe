@@ -2,6 +2,48 @@ import type { Resume } from "../types";
 import { LAYOUT_DEFAULTS, DEFAULT_SECTION_ORDER } from "../types";
 import { uid } from "./id";
 
+/** An empty starter document for a brand-new project. */
+export function makeBlankResume(): Resume {
+  return {
+    name: "",
+    headline: "",
+    summary: "",
+    contacts: [],
+    work: [],
+    education: [],
+    certifications: [],
+    footer: {
+      enabled: false,
+      title: "Interests",
+      content: "",
+      style: "paragraph",
+    },
+    sectionOrder: [...DEFAULT_SECTION_ORDER],
+    meta: {
+      templateId: "classic",
+      fontId: "times",
+      accentColor: "#B07C4E",
+      pageSize: "LETTER",
+      ...LAYOUT_DEFAULTS,
+    },
+    identityOverride: false,
+  };
+}
+
+/** Deep-clones a resume, regenerating every nested id so it's safe to use as a duplicate project. */
+export function cloneResumeWithFreshIds(resume: Resume): Resume {
+  return {
+    ...resume,
+    contacts: resume.contacts.map((c) => ({ ...c, id: uid() })),
+    work: resume.work.map((w) => ({ ...w, id: uid(), bullets: [...w.bullets] })),
+    education: resume.education.map((e) => ({ ...e, id: uid(), details: [...e.details] })),
+    certifications: resume.certifications.map((c) => ({ ...c, id: uid() })),
+    footer: { ...resume.footer },
+    sectionOrder: [...resume.sectionOrder],
+    meta: { ...resume.meta },
+  };
+}
+
 /** A friendly starter document so the preview is never empty. */
 export function makeSampleResume(): Resume {
   return {
@@ -10,11 +52,10 @@ export function makeSampleResume(): Resume {
     summary:
       "Product designer with 8+ years crafting intuitive, accessible interfaces for fast-growing teams. Bridges research, visual design, and front-end to ship polished products.",
     contacts: [
-      { id: uid(), type: "email", value: "alex.morgan@email.com", show: true },
-      { id: uid(), type: "phone", value: "(415) 555-0182", show: true },
-      { id: uid(), type: "location", value: "San Francisco, CA", show: true },
-      { id: uid(), type: "linkedin", value: "linkedin.com/in/alexmorgan", show: true },
-      { id: uid(), type: "website", value: "alexmorgan.design", show: false },
+      { id: uid(), type: "email", value: "alex.morgan@email.com" },
+      { id: uid(), type: "phone", value: "(415) 555-0182" },
+      { id: uid(), type: "location", value: "San Francisco, CA" },
+      { id: uid(), type: "linkedin", value: "linkedin.com/in/alexmorgan" },
     ],
     work: [
       {

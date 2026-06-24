@@ -3,8 +3,7 @@ import { useResume } from "../../store/resumeStore";
 import { normalizeSectionOrder, type SectionKey } from "../../types";
 import { ReorderArrows } from "../common/ui";
 import { HeaderSection } from "./HeaderSection";
-import { FormattingSection } from "./FormattingSection";
-import { ContactSection } from "./ContactSection";
+import { StyleSection } from "./StyleSection";
 import { SummarySection } from "./SummarySection";
 import { WorkSection } from "./WorkSection";
 import { EducationSection } from "./EducationSection";
@@ -32,10 +31,7 @@ export function EditorPane() {
           <HeaderSection />
         </Row>
         <Row>
-          <FormattingSection />
-        </Row>
-        <Row>
-          <ContactSection />
+          <StyleSection />
         </Row>
 
         {/* Reorderable document sections — click arrows to move. */}

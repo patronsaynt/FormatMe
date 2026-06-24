@@ -1,6 +1,6 @@
 import type { Resume, SectionKey } from "../types";
 import { footerItems, orderedSections } from "../types";
-import { visibleContacts, dateRange, workLocation } from "../templates/shared";
+import { visibleContacts, dateRange, workLocation, certificationLabel } from "../templates/shared";
 import { formatResumeDate } from "../lib/date";
 import { getFont } from "../fonts/registry";
 import { saveText, safeBaseName } from "./save";
@@ -53,7 +53,7 @@ export function resumeToHtml(resume: Resume): string {
   const certs = resume.certifications
     .map(
       (c) =>
-        `<div class="row"><span>${esc(c.name + (c.issuer ? ` — ${c.issuer}` : ""))}</span>
+        `<div class="row"><span>${esc(certificationLabel(c))}</span>
          <span class="meta">${esc(formatResumeDate(c.date))}</span></div>`,
     )
     .join("");

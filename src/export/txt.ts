@@ -1,5 +1,5 @@
 import type { Resume, SectionKey } from "../types";
-import { visibleContacts, dateRange, workLocation } from "../templates/shared";
+import { visibleContacts, dateRange, workLocation, certificationLabel } from "../templates/shared";
 import { formatResumeDate } from "../lib/date";
 import { CONTACT_META, footerItems, orderedSections } from "../types";
 import { saveText, safeBaseName } from "./save";
@@ -58,7 +58,7 @@ export function resumeToText(resume: Resume): string {
       heading("Certifications");
       for (const c of resume.certifications) {
         lines.push(
-          `- ${c.name}${c.issuer ? ` — ${c.issuer}` : ""}${
+          `- ${certificationLabel(c)}${
             formatResumeDate(c.date) ? ` (${formatResumeDate(c.date)})` : ""
           }`,
         );

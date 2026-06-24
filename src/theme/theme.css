@@ -20,6 +20,8 @@
   --accent-soft: 222 199 168; /* #DEC7A8 */
   --preview-bg: 201 186 164; /* #C9BAA4 muted sand behind the page */
   --shadow: 120 95 60;
+  --font-ui: Inter, system-ui, -apple-system, sans-serif;
+  --font-garamond: "EB Garamond", Garamond, Georgia, serif;
   color-scheme: light;
 }
 
@@ -58,6 +60,36 @@ body {
   src: local("Inter"), local("Helvetica Neue"), local("Arial");
   font-weight: 100 900;
   font-display: swap;
+}
+
+/* Serif used for display headings (e.g. onboarding) — bundled with the app */
+@font-face {
+  font-family: "EB Garamond";
+  src: url("../fonts/files/eb-garamond-v32-latin-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "EB Garamond";
+  src: url("../fonts/files/eb-garamond-v32-latin-700.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Onboarding animations ──────────────────────────────────── */
+@keyframes ob-ring {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+@keyframes ob-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
+}
+@keyframes ob-fade {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
 }
 
 /* Smooth theme transitions on chrome surfaces */
@@ -102,6 +134,11 @@ body {
 .field:focus {
   border-color: rgb(var(--accent));
   box-shadow: 0 0 0 3px rgb(var(--accent) / 0.16);
+}
+.field:disabled {
+  color: rgb(var(--muted));
+  cursor: default;
+  opacity: 0.75;
 }
 
 .label {

@@ -43,7 +43,7 @@ export function Popover({
       </button>
       {open && (
         <div
-          className={`absolute z-30 mt-2 ${width} ${
+          className={`absolute z-[60] mt-2 ${width} ${
             align === "right" ? "right-0" : "left-0"
           } overflow-hidden rounded-xl border border-line bg-elevated shadow-soft animate-slide-up`}
         >

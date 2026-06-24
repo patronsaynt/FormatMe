@@ -2,7 +2,7 @@ import { Fragment, type ReactNode } from "react";
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import type { Resume, SectionKey } from "../types";
 import { footerItems, orderedSections } from "../types";
-import { fontFamilyFor, visibleContacts, dateRange, workLocation, metrics } from "./shared";
+import { fontFamilyFor, visibleContacts, dateRange, workLocation, metrics, certificationLabel } from "./shared";
 import { formatResumeDate } from "../lib/date";
 
 // Classic is intentionally monochrome: all text is black and every dot marker
@@ -142,10 +142,7 @@ export default function Classic({ resume }: { resume: Resume }) {
         <Section title="Certifications">
           {resume.certifications.map((c) => (
             <View key={c.id} style={s.entryHeader}>
-              <Text style={s.bulletText}>
-                {c.name}
-                {c.issuer ? ` — ${c.issuer}` : ""}
-              </Text>
+              <Text style={s.bulletText}>{certificationLabel(c)}</Text>
               <Text style={s.meta}>{formatResumeDate(c.date)}</Text>
             </View>
           ))}

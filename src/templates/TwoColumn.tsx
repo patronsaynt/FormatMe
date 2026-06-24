@@ -86,6 +86,9 @@ export default function TwoColumn({ resume }: { resume: Resume }) {
             <View key={c.id} style={{ marginTop: 4 }}>
               <Text style={s.sideValue}>{c.name}</Text>
               {c.issuer ? <Text style={s.sideLabel}>{c.issuer}</Text> : null}
+              {c.credentialId?.trim() ? (
+                <Text style={s.sideLabel}>ID: {c.credentialId.trim()}</Text>
+              ) : null}
             </View>
           ))}
         </View>

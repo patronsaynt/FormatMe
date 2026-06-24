@@ -9,6 +9,7 @@ import type {
   ContactType,
   ResumeMeta,
   ResumeFooter,
+  GlobalProfile,
 } from "../types";
 import { CONTACT_META, DEFAULT_SECTION_ORDER, orderedSections } from "../types";
 import { uid } from "../lib/id";
@@ -42,9 +43,11 @@ interface ResumeState {
   addContact: (type: ContactType) => void;
   updateContact: (id: string, patch: Partial<ContactItem>) => void;
 
+  // identity (name + contacts) override toggle — seeds from the global profile when turned on
+  setIdentityOverride: (on: boolean, seedFrom?: GlobalProfile) => void;
+
   // whole-document
   replaceResume: (r: Resume) => void;
-  resetResume: () => void;
 }
 
 function move<T>(arr: T[], from: number, to: number): T[] {
@@ -180,7 +183,6 @@ export const useResume = create<ResumeState>()(
                 type,
                 value: "",
                 label: type === "custom" ? CONTACT_META.custom.label : undefined,
-                show: true,
               },
             ],
           },
@@ -196,8 +198,28 @@ export const useResume = create<ResumeState>()(
           },
         })),
 
+      setIdentityOverride: (on, seedFrom) =>
+        set((s) => {
+          // Only seed from the global profile the first time this resume is
+          // customized — a resume with existing local data keeps it when
+          // toggled back on, instead of clobbering it with global values again.
+          const isBlank = !s.resume.name.trim() && s.resume.contacts.length === 0;
+          const shouldSeed = on && seedFrom && isBlank;
+          return {
+            resume: {
+              ...s.resume,
+              identityOverride: on,
+              ...(shouldSeed
+                ? {
+                    name: seedFrom.name,
+                    contacts: seedFrom.contacts.map((c) => ({ ...c, id: uid() })),
+                  }
+                : {}),
+            },
+          };
+        }),
+
       replaceResume: (r) => set({ resume: r }),
-      resetResume: () => set({ resume: makeSampleResume() }),
     }),
     {
       name: "formatme:resume",

@@ -10,7 +10,7 @@ import {
 } from "docx";
 import type { Resume, SectionKey } from "../types";
 import { footerItems, orderedSections } from "../types";
-import { visibleContacts, dateRange, workLocation } from "../templates/shared";
+import { visibleContacts, dateRange, workLocation, certificationLabel } from "../templates/shared";
 import { formatResumeDate } from "../lib/date";
 import { saveBytes, safeBaseName } from "./save";
 
@@ -148,7 +148,7 @@ export async function exportDocx(resume: Resume): Promise<string | null> {
       for (const c of resume.certifications) {
         children.push(
           rightTabbed(
-            [new TextRun({ text: c.name + (c.issuer ? ` — ${c.issuer}` : ""), size: 19 })],
+            [new TextRun({ text: certificationLabel(c), size: 19 })],
             formatResumeDate(c.date),
           ),
         );

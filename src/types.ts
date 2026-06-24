@@ -18,7 +18,14 @@ export interface ContactItem {
   type: ContactType;
   label?: string; // used when type === "custom"
   value: string;
-  show: boolean;
+}
+
+/** The shared identity (name + contacts) that applies to every resume by default. */
+export interface GlobalProfile {
+  name: string;
+  /** Default professional title — seeds the headline of new resumes. */
+  headline?: string;
+  contacts: ContactItem[];
 }
 
 /**
@@ -132,6 +139,8 @@ export interface Resume {
   footer: ResumeFooter; // optional — hidden unless enabled
   sectionOrder: SectionKey[]; // order body sections appear in the document
   meta: ResumeMeta;
+  /** When true, this resume's own name/contacts are used instead of the global profile. */
+  identityOverride?: boolean;
 }
 
 /** Complete, de-duplicated section order (guards older/partial documents). */

@@ -1,4 +1,4 @@
-import type { Resume, ContactItem, WorkExperience, ResumeDate } from "../types";
+import type { Resume, ContactItem, WorkExperience, ResumeDate, Certification } from "../types";
 import { LAYOUT_DEFAULTS } from "../types";
 import { getFont } from "../fonts/registry";
 import { formatContactValue } from "../lib/format";
@@ -40,6 +40,12 @@ export function fontFamilyFor(resume: Resume): string {
   return getFont(resume.meta.fontId).family;
 }
 
+/** "Name — Issuer (ID: ...)" — the credential ID only appears once it's filled in. */
+export function certificationLabel(c: Certification): string {
+  const base = c.name + (c.issuer ? ` — ${c.issuer}` : "");
+  return c.credentialId?.trim() ? `${base} (ID: ${c.credentialId.trim()})` : base;
+}
+
 /**
  * Visible contacts with their values formatted for display. Formatting happens
  * here (at render time) so the resume & every export always show a tidy value —
@@ -47,7 +53,7 @@ export function fontFamilyFor(resume: Resume): string {
  */
 export function visibleContacts(resume: Resume): ContactItem[] {
   return resume.contacts
-    .filter((c) => c.show && c.value.trim() !== "")
+    .filter((c) => c.value.trim() !== "")
     .map((c) => ({ ...c, value: formatContactValue(c.type, c.value) }));
 }
 

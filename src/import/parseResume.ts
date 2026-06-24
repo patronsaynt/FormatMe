@@ -143,7 +143,7 @@ function extractContacts(lines: TextLine[], headerLines: TextLine[]): ContactIte
   for (const type of order) {
     const raw = found.get(type);
     if (!raw) continue;
-    contacts.push({ id: uid(), type, value: formatContactValue(type, raw), show: true });
+    contacts.push({ id: uid(), type, value: formatContactValue(type, raw) });
   }
   return contacts;
 }

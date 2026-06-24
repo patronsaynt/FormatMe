@@ -1,11 +1,14 @@
 import { useResume } from "../../store/resumeStore";
+import { useGlobalProfile } from "../../store/globalProfileStore";
 import { useDebounced } from "../../lib/useDebounced";
+import { effectiveResume } from "../../lib/identity";
 import { PdfCanvas } from "./PdfCanvas";
 
 export function PreviewPane() {
   const resume = useResume((s) => s.resume);
+  const profile = useGlobalProfile((s) => s.profile);
   // Debounce so typing doesn't trigger a PDF re-render on every keystroke.
-  const debounced = useDebounced(resume, 400);
+  const debounced = useDebounced(effectiveResume(resume, profile), 400);
 
   return (
     <div
