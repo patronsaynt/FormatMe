@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Plus, Pencil, Trash2, FileText, User, Check, X } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, FileUp, FolderOpen, User, Check, X, Loader2 } from "lucide-react";
 import { useProjects } from "../../store/projectsStore";
 import { useProfileModal } from "../../store/modalStore";
 import { Popover } from "../common/Popover";
 import { Field, IconButton } from "../common/ui";
+import { useResumeImport } from "../../lib/useResumeImport";
+import { ImportSummary } from "../import/ImportSummary";
 
 export function Sidebar() {
   const projects = useProjects((s) => s.projects);
@@ -118,57 +120,97 @@ function NewProjectPopover() {
 
   const activeTitle = projects.find((p) => p.id === activeId)?.title ?? "current project";
 
+  const { busy: importBusy, importState, setImportState, importFromPdf, importFromJson } =
+    useResumeImport((imported) => {
+      createProject({ mode: "resume", resume: imported }, title || imported.name || "Imported Resume");
+      setTitle("");
+    });
+
   return (
-    <Popover
-      align="left"
-      width="w-64"
-      trigger={(open) => (
-        <span
-          title="New project"
-          className={`grid h-7 w-7 place-items-center rounded-md transition-colors ${
-            open ? "bg-elevated text-accent" : "text-muted hover:bg-elevated hover:text-accent"
-          }`}
-        >
-          <Plus size={16} />
-        </span>
-      )}
-    >
-      {(close) => (
-        <div className="p-3">
-          <Field
-            label="Title"
-            value={title}
-            placeholder="Untitled Resume"
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <div className="mt-3 space-y-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                createProject({ mode: "blank" }, title);
-                setTitle("");
-                close();
-              }}
-              className="w-full rounded-lg border border-line px-2.5 py-1.5 text-left text-sm text-ink transition-colors hover:border-accent hover:text-accent"
-            >
-              Blank resume
-            </button>
-            {activeId && (
+    <>
+      <Popover
+        align="left"
+        width="w-64"
+        trigger={(open) => (
+          <span
+            title="New project"
+            className={`grid h-7 w-7 place-items-center rounded-md transition-colors ${
+              open ? "bg-elevated text-accent" : "text-muted hover:bg-elevated hover:text-accent"
+            }`}
+          >
+            <Plus size={16} />
+          </span>
+        )}
+      >
+        {(close) => (
+          <div className="p-3">
+            <Field
+              label="Title"
+              value={title}
+              placeholder="Untitled Resume"
+              onChange={(e) => setTitle(e.target.value)}
+            />
+            <div className="mt-3 space-y-1.5">
               <button
                 type="button"
                 onClick={() => {
-                  createProject({ mode: "duplicate", fromId: activeId }, title);
+                  createProject({ mode: "blank" }, title);
                   setTitle("");
                   close();
                 }}
                 className="w-full rounded-lg border border-line px-2.5 py-1.5 text-left text-sm text-ink transition-colors hover:border-accent hover:text-accent"
               >
-                Duplicate "{activeTitle}"
+                Blank resume
               </button>
-            )}
+              {activeId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    createProject({ mode: "duplicate", fromId: activeId }, title);
+                    setTitle("");
+                    close();
+                  }}
+                  className="w-full rounded-lg border border-line px-2.5 py-1.5 text-left text-sm text-ink transition-colors hover:border-accent hover:text-accent"
+                >
+                  Duplicate "{activeTitle}"
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={importBusy}
+                onClick={() => {
+                  close();
+                  void importFromPdf();
+                }}
+                className="flex w-full items-center gap-2 rounded-lg border border-line px-2.5 py-1.5 text-left text-sm text-ink transition-colors hover:border-accent hover:text-accent disabled:opacity-50"
+              >
+                {importBusy ? <Loader2 size={14} className="animate-spin" /> : <FileUp size={14} />}
+                Import from PDF…
+              </button>
+              <button
+                type="button"
+                disabled={importBusy}
+                onClick={() => {
+                  close();
+                  void importFromJson();
+                }}
+                className="flex w-full items-center gap-2 rounded-lg border border-line px-2.5 py-1.5 text-left text-sm text-ink transition-colors hover:border-accent hover:text-accent disabled:opacity-50"
+              >
+                {importBusy ? <Loader2 size={14} className="animate-spin" /> : <FolderOpen size={14} />}
+                Import resume file (.json)…
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+      </Popover>
+
+      {importState && (
+        <ImportSummary
+          report={importState.report}
+          imported={importState.imported}
+          onClose={() => setImportState(null)}
+        />
       )}
-    </Popover>
+    </>
   );
 }

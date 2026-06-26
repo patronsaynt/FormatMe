@@ -22,23 +22,24 @@ import { exportPdf } from "../../export/pdf";
 import { exportDocx } from "../../export/docx";
 import { exportHtml } from "../../export/html";
 import { exportTxt } from "../../export/txt";
-import { exportProject, importProject } from "../../export/project";
-import { importResumeFromPdf } from "../../import/importPdf";
+import { exportProject } from "../../export/project";
 import { ImportSummary } from "../import/ImportSummary";
-import type { ImportReport } from "../../import/types";
+import { useResumeImport } from "../../lib/useResumeImport";
 
 export function TopBar() {
   const resume = useResume((s) => s.resume);
-  const replaceResume = useResume((s) => s.replaceResume);
   const profile = useGlobalProfile((s) => s.profile);
   const exportResume = effectiveResume(resume, profile);
   const touchActiveResume = useProjects((s) => s.touchActiveResume);
+  const createProject = useProjects((s) => s.createProject);
   const { theme, toggleTheme } = useUI();
   const [busy, setBusy] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
-  const [importState, setImportState] = useState<{ report: ImportReport; imported: boolean } | null>(
-    null,
-  );
+
+  const { busy: importBusy, importState, setImportState, importFromPdf, importFromJson } =
+    useResumeImport((imported) => {
+      createProject({ mode: "resume", resume: imported }, imported.name || "Imported Resume");
+    });
 
   const handleSave = () => {
     touchActiveResume(resume);
@@ -53,31 +54,6 @@ export function TopBar() {
     } catch (err) {
       console.error(err);
       alert(`Export failed: ${String(err)}`);
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const handleImportPdf = async () => {
-    if (
-      !confirm(
-        "Importing a PDF replaces your current resume with its extracted text.\n\nTip: use Export resume file first if you want to keep a backup.",
-      )
-    )
-      return;
-    try {
-      setBusy("import");
-      const res = await importResumeFromPdf();
-      if (!res) return; // dialog cancelled
-      if (res.resume) {
-        replaceResume(res.resume);
-        setImportState({ report: res.report, imported: true });
-      } else {
-        setImportState({ report: res.report, imported: false });
-      }
-    } catch (err) {
-      console.error(err);
-      alert(`Import failed: ${String(err)}`);
     } finally {
       setBusy(null);
     }
@@ -98,15 +74,11 @@ export function TopBar() {
         {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
       </ToolbarButton>
 
-      {/* Import menu */}
+      {/* Import menu — always opens the import into a new project */}
       <Popover
         trigger={(open) => (
           <ToolbarButton active={open} title="Import">
-            {busy === "import" ? (
-              <Loader2 size={15} className="animate-spin" />
-            ) : (
-              <FileUp size={15} />
-            )}
+            {importBusy ? <Loader2 size={15} className="animate-spin" /> : <FileUp size={15} />}
             Import
             <ChevronDown size={13} className="opacity-60" />
           </ToolbarButton>
@@ -116,19 +88,18 @@ export function TopBar() {
           <div className="p-1.5 text-sm">
             <MenuRow
               icon={<FileUp size={15} />}
-              label="Import from PDF"
+              label="Import from PDF…"
               onClick={() => {
                 close();
-                void handleImportPdf();
+                void importFromPdf();
               }}
             />
             <MenuRow
               icon={<FolderOpen size={15} />}
-              label="Import resume file…"
-              onClick={async () => {
+              label="Import resume file (.json)…"
+              onClick={() => {
                 close();
-                const r = await importProject();
-                if (r) replaceResume(r);
+                void importFromJson();
               }}
             />
           </div>

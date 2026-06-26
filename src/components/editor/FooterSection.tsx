@@ -1,12 +1,17 @@
-import { Heart } from "lucide-react";
+import { Heart, Plus, Trash2 } from "lucide-react";
 import { useResume } from "../../store/resumeStore";
-import { SectionCard, Field, TextArea, Toggle } from "../common/ui";
+import { SectionCard, Field, Toggle, IconButton, Button } from "../common/ui";
+import { SortableList } from "../common/SortableList";
 import { BulletEditor } from "./BulletEditor";
+import { DateField } from "./DateField";
 
 export function FooterSection() {
   const footer = useResume((s) => s.resume.footer);
   const setFooter = useResume((s) => s.setFooter);
-  const style = footer.style ?? "paragraph";
+  const addFooterEntry = useResume((s) => s.addFooterEntry);
+  const updateFooterEntry = useResume((s) => s.updateFooterEntry);
+  const removeFooterEntry = useResume((s) => s.removeFooterEntry);
+  const reorderFooterEntries = useResume((s) => s.reorderFooterEntries);
 
   return (
     <SectionCard
@@ -26,45 +31,77 @@ export function FooterSection() {
           onChange={(e) => setFooter({ title: e.target.value })}
         />
 
-        {/* Paragraph vs itemized list */}
-        <div>
-          <span className="label">Layout</span>
-          <div className="flex overflow-hidden rounded-lg border border-line text-xs">
-            {(["paragraph", "list"] as const).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setFooter({ style: s })}
-                className={`flex-1 px-3 py-1.5 font-medium capitalize transition-colors ${
-                  style === s ? "bg-accent text-white" : "text-muted hover:bg-elevated"
-                }`}
-              >
-                {s === "list" ? "Itemized list" : "Paragraph"}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {style === "list" ? (
-          <div>
-            <span className="label">Items</span>
-            <BulletEditor
-              // Split on newline WITHOUT trimming, so spaces type normally while
-              // editing. Output rendering trims/filters via footerItems().
-              bullets={footer.content ? footer.content.split("\n") : [""]}
-              onChange={(items) => setFooter({ content: items.join("\n") })}
-              placeholder="e.g. Photography"
-              addLabel="Add item"
-            />
+        {footer.entries.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-line py-7 text-center">
+            <p className="text-sm text-muted">No items yet.</p>
+            <Button onClick={addFooterEntry} className="mt-2" variant="primary">
+              <Plus size={15} /> Add item
+            </Button>
           </div>
         ) : (
-          <TextArea
-            label="Content"
-            rows={2}
-            value={footer.content}
-            placeholder="Photography, hiking, open-source contribution…"
-            onChange={(e) => setFooter({ content: e.target.value })}
+          <SortableList
+            items={footer.entries}
+            onReorder={reorderFooterEntries}
+            renderItem={(entry) => (
+              <div className="space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <Field
+                    label="Header"
+                    value={entry.header}
+                    placeholder="e.g. Side Projects"
+                    onChange={(e) => updateFooterEntry(entry.id, { header: e.target.value })}
+                  />
+                  <IconButton
+                    onClick={() => removeFooterEntry(entry.id)}
+                    title="Delete entry"
+                    className="mt-5 hover:text-red-500"
+                  >
+                    <Trash2 size={15} />
+                  </IconButton>
+                </div>
+                <Field
+                  label="Subheader (optional)"
+                  value={entry.subheader ?? ""}
+                  placeholder="e.g. Independent & open-source"
+                  onChange={(e) => updateFooterEntry(entry.id, { subheader: e.target.value })}
+                />
+                <Toggle
+                  checked={!!entry.showDate}
+                  onChange={(v) => updateFooterEntry(entry.id, { showDate: v })}
+                  label="Show dates"
+                />
+                {entry.showDate && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <DateField
+                      label="Start"
+                      value={entry.startDate ?? {}}
+                      onChange={(d) => updateFooterEntry(entry.id, { startDate: d })}
+                    />
+                    <DateField
+                      label="End"
+                      value={entry.endDate ?? {}}
+                      onChange={(d) => updateFooterEntry(entry.id, { endDate: d })}
+                    />
+                  </div>
+                )}
+                <div>
+                  <span className="label">Items</span>
+                  <BulletEditor
+                    bullets={entry.bullets}
+                    onChange={(next) => updateFooterEntry(entry.id, { bullets: next })}
+                    placeholder="e.g. Photography"
+                    addLabel="Add item"
+                  />
+                </div>
+              </div>
+            )}
           />
+        )}
+
+        {footer.entries.length > 0 && (
+          <Button onClick={addFooterEntry} className="mt-1" variant="soft">
+            <Plus size={15} /> Add entry
+          </Button>
         )}
       </div>
     </SectionCard>

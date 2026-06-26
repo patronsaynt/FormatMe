@@ -72,19 +72,26 @@ export interface Certification {
   credentialId?: string;
 }
 
+/**
+ * One grouped entry within the footer's itemized list — a bolded header with
+ * an optional italicized subheader and its own bulleted items, mirroring how
+ * Education/Experience entries are structured. Dates are opt-in per entry
+ * since footer content (hobbies, side projects, etc.) usually isn't dated.
+ */
+export interface FooterEntry {
+  id: string;
+  header: string;
+  subheader?: string;
+  showDate?: boolean;
+  startDate?: ResumeDate;
+  endDate?: ResumeDate;
+  bullets: string[];
+}
+
 export interface ResumeFooter {
   enabled: boolean;
   title: string; // e.g. "Interests"
-  content: string; // paragraph text, or newline-separated items in "list" style
-  style: "paragraph" | "list";
-}
-
-/** Footer items for "list" style — one per non-empty line. */
-export function footerItems(footer: ResumeFooter): string[] {
-  return footer.content
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  entries: FooterEntry[];
 }
 
 export interface ResumeMeta {

@@ -9,7 +9,7 @@ import {
   BorderStyle,
 } from "docx";
 import type { Resume, SectionKey } from "../types";
-import { footerItems, orderedSections } from "../types";
+import { orderedSections } from "../types";
 import { visibleContacts, dateRange, workLocation, certificationLabel } from "../templates/shared";
 import { formatResumeDate } from "../lib/date";
 import { saveBytes, safeBaseName } from "./save";
@@ -155,14 +155,27 @@ export async function exportDocx(resume: Resume): Promise<string | null> {
       }
     },
     footer: () => {
-      if (!(resume.footer.enabled && resume.footer.content.trim())) return;
+      if (!(resume.footer.enabled && resume.footer.entries.length > 0)) return;
       children.push(sectionHeading(resume.footer.title || "Interests"));
-      if (resume.footer.style === "list") {
-        for (const it of footerItems(resume.footer)) children.push(bullet(it));
-      } else {
-        children.push(
-          new Paragraph({ children: [new TextRun({ text: resume.footer.content, size: 19 })] }),
-        );
+      for (const e of resume.footer.entries) {
+        if (e.header.trim() || e.showDate) {
+          children.push(
+            rightTabbed(
+              [new TextRun({ text: e.header, bold: true, size: 21 })],
+              e.showDate ? dateRange(e.startDate, e.endDate) : "",
+            ),
+          );
+        }
+        if (e.subheader?.trim()) {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: e.subheader, italics: true, size: 19, color: "333333" }),
+              ],
+            }),
+          );
+        }
+        for (const b of e.bullets.filter((x) => x.trim())) children.push(bullet(b));
       }
     },
   };

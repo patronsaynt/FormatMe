@@ -9,6 +9,7 @@ import type {
   ContactType,
   ResumeMeta,
   ResumeFooter,
+  FooterEntry,
   GlobalProfile,
 } from "../types";
 import { CONTACT_META, DEFAULT_SECTION_ORDER, orderedSections } from "../types";
@@ -25,6 +26,10 @@ interface ResumeState {
   setField: <K extends keyof Resume>(key: K, value: Resume[K]) => void;
   setMeta: (patch: Partial<ResumeMeta>) => void;
   setFooter: (patch: Partial<ResumeFooter>) => void;
+  addFooterEntry: () => void;
+  updateFooterEntry: (id: string, patch: Partial<FooterEntry>) => void;
+  removeFooterEntry: (id: string) => void;
+  reorderFooterEntries: (from: number, to: number) => void;
 
   // generic list ops
   reorder: (key: ListKey, from: number, to: number) => void;
@@ -71,6 +76,60 @@ export const useResume = create<ResumeState>()(
       setFooter: (patch) =>
         set((s) => ({
           resume: { ...s.resume, footer: { ...s.resume.footer, ...patch } },
+        })),
+
+      addFooterEntry: () =>
+        set((s) => ({
+          resume: {
+            ...s.resume,
+            footer: {
+              ...s.resume.footer,
+              entries: [
+                ...s.resume.footer.entries,
+                {
+                  id: uid(),
+                  header: "",
+                  subheader: "",
+                  showDate: false,
+                  startDate: {},
+                  endDate: {},
+                  bullets: [""],
+                },
+              ],
+            },
+          },
+        })),
+
+      updateFooterEntry: (id, patch) =>
+        set((s) => ({
+          resume: {
+            ...s.resume,
+            footer: {
+              ...s.resume.footer,
+              entries: s.resume.footer.entries.map((e) =>
+                e.id === id ? { ...e, ...patch } : e,
+              ),
+            },
+          },
+        })),
+
+      removeFooterEntry: (id) =>
+        set((s) => ({
+          resume: {
+            ...s.resume,
+            footer: {
+              ...s.resume.footer,
+              entries: s.resume.footer.entries.filter((e) => e.id !== id),
+            },
+          },
+        })),
+
+      reorderFooterEntries: (from, to) =>
+        set((s) => ({
+          resume: {
+            ...s.resume,
+            footer: { ...s.resume.footer, entries: move(s.resume.footer.entries, from, to) },
+          },
         })),
 
       reorder: (key, from, to) =>
@@ -223,9 +282,10 @@ export const useResume = create<ResumeState>()(
     }),
     {
       name: "formatme:resume",
-      version: 3,
+      version: 4,
       // v1→v2: free-text dates → structured ResumeDate.
       // v2→v3: add sectionOrder + footer.style defaults.
+      // v3→v4: footer.content/style (flat text) → footer.entries (grouped, like Education/Work).
       migrate: (persisted: unknown, version: number) => {
         const state = persisted as { resume?: Resume };
         const r = state?.resume as Record<string, unknown> | undefined;
@@ -250,6 +310,32 @@ export const useResume = create<ResumeState>()(
           }
           const footer = r.footer as { style?: string } | undefined;
           if (footer && !footer.style) footer.style = "paragraph";
+        }
+        if (version < 4 && r) {
+          const footer = r.footer as
+            | { content?: string; style?: string; entries?: unknown }
+            | undefined;
+          if (footer && !Array.isArray(footer.entries)) {
+            const items = (footer.content ?? "")
+              .split("\n")
+              .map((s) => s.trim())
+              .filter(Boolean);
+            footer.entries = items.length
+              ? [
+                  {
+                    id: uid(),
+                    header: "",
+                    subheader: "",
+                    showDate: false,
+                    startDate: {},
+                    endDate: {},
+                    bullets: items,
+                  },
+                ]
+              : [];
+            delete footer.content;
+            delete footer.style;
+          }
         }
         return state;
       },

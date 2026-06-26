@@ -13,7 +13,10 @@ export interface ProjectMeta {
   resume: Resume;
 }
 
-export type NewProjectOptions = { mode: "blank" } | { mode: "duplicate"; fromId: string };
+export type NewProjectOptions =
+  | { mode: "blank" }
+  | { mode: "duplicate"; fromId: string }
+  | { mode: "resume"; resume: Resume };
 
 interface ProjectsState {
   projects: ProjectMeta[];
@@ -60,7 +63,9 @@ export const useProjects = create<ProjectsState>()(
         const source =
           opts.mode === "duplicate"
             ? projects.find((p) => p.id === opts.fromId)?.resume ?? useResume.getState().resume
-            : null;
+            : opts.mode === "resume"
+              ? opts.resume
+              : null;
         let resume: Resume;
         if (source) {
           resume = cloneResumeWithFreshIds(source);

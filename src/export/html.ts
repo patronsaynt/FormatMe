@@ -1,5 +1,5 @@
 import type { Resume, SectionKey } from "../types";
-import { footerItems, orderedSections } from "../types";
+import { orderedSections } from "../types";
 import { visibleContacts, dateRange, workLocation, certificationLabel } from "../templates/shared";
 import { formatResumeDate } from "../lib/date";
 import { getFont } from "../fonts/registry";
@@ -58,19 +58,33 @@ export function resumeToHtml(resume: Resume): string {
     )
     .join("");
 
+  const footerEntries = resume.footer.entries
+    .map((e) => {
+      const headerRow =
+        e.header.trim() || e.showDate
+          ? `<div class="row"><span class="role">${esc(e.header)}</span>${
+              e.showDate
+                ? `<span class="meta">${esc(dateRange(e.startDate, e.endDate))}</span>`
+                : ""
+            }</div>`
+          : "";
+      const subRow = e.subheader?.trim() ? `<div class="org">${esc(e.subheader)}</div>` : "";
+      const items = e.bullets.filter((b) => b.trim());
+      const list = items.length
+        ? `<ul>${items.map((b) => `<li>${esc(b)}</li>`).join("")}</ul>`
+        : "";
+      return `<div class="entry">${headerRow}${subRow}${list}</div>`;
+    })
+    .join("");
+
   const bodyByKey: Record<SectionKey, string> = {
     summary: resume.summary?.trim() ? section("Summary", `<p>${esc(resume.summary)}</p>`) : "",
     work: section("Experience", work),
     education: section("Education", edu),
     certifications: section("Certifications", certs),
     footer:
-      resume.footer.enabled && resume.footer.content.trim()
-        ? section(
-            resume.footer.title || "Interests",
-            resume.footer.style === "list"
-              ? `<ul>${footerItems(resume.footer).map((it) => `<li>${esc(it)}</li>`).join("")}</ul>`
-              : `<p>${esc(resume.footer.content)}</p>`,
-          )
+      resume.footer.enabled && resume.footer.entries.length > 0
+        ? section(resume.footer.title || "Interests", footerEntries)
         : "",
   };
   const body = orderedSections(resume)

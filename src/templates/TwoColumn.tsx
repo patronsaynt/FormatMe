@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import type { Resume, SectionKey } from "../types";
-import { CONTACT_META, footerItems, orderedSections } from "../types";
+import { CONTACT_META, orderedSections } from "../types";
 import { fontFamilyFor, visibleContacts, dateRange, shade, workLocation, metrics } from "./shared";
 
 export default function TwoColumn({ resume }: { resume: Resume }) {
@@ -34,6 +34,11 @@ export default function TwoColumn({ resume }: { resume: Resume }) {
     },
     sideLabel: { fontSize: fs(8), color: "#666", marginTop: sp(5) },
     sideValue: { fontSize: fs(9), color: "#222" },
+    sideHeader: { fontSize: fs(9), fontWeight: 700, color: "#1c1c1c", marginTop: sp(5) },
+    sideSub: { fontSize: fs(8.5), fontStyle: "italic", color: "#444" },
+    sideBulletRow: { flexDirection: "row", marginTop: sp(2) },
+    sideBulletDot: { width: fs(9), fontSize: fs(9), color: accent },
+    sideBulletText: { flex: 1, fontSize: fs(8.5), color: "#2b2b2b" },
     mainTitle: {
       fontSize: fs(12),
       fontWeight: 700,
@@ -94,18 +99,30 @@ export default function TwoColumn({ resume }: { resume: Resume }) {
         </View>
       ) : null,
     footer:
-      resume.footer.enabled && resume.footer.content.trim() ? (
+      resume.footer.enabled && resume.footer.entries.length > 0 ? (
         <View>
           <Text style={s.sideTitle}>{resume.footer.title || "Interests"}</Text>
-          {resume.footer.style === "list" ? (
-            footerItems(resume.footer).map((it, i) => (
-              <Text key={i} style={s.sideValue}>
-                • {it}
-              </Text>
-            ))
-          ) : (
-            <Text style={s.sideValue}>{resume.footer.content}</Text>
-          )}
+          {resume.footer.entries.map((entry) => (
+            <View key={entry.id} style={{ marginTop: 2 }}>
+              {entry.header.trim() || entry.showDate ? (
+                <View style={s.entryHeader}>
+                  <Text style={s.sideHeader}>{entry.header}</Text>
+                  {entry.showDate ? (
+                    <Text style={s.sideLabel}>{dateRange(entry.startDate, entry.endDate)}</Text>
+                  ) : null}
+                </View>
+              ) : null}
+              {entry.subheader?.trim() ? <Text style={s.sideSub}>{entry.subheader}</Text> : null}
+              {entry.bullets
+                .filter((b) => b.trim())
+                .map((b, i) => (
+                  <View key={i} style={s.sideBulletRow}>
+                    <Text style={s.sideBulletDot}>•</Text>
+                    <Text style={s.sideBulletText}>{b}</Text>
+                  </View>
+                ))}
+            </View>
+          ))}
         </View>
       ) : null,
     summary: resume.summary?.trim() ? (

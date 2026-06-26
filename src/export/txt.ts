@@ -1,7 +1,7 @@
 import type { Resume, SectionKey } from "../types";
 import { visibleContacts, dateRange, workLocation, certificationLabel } from "../templates/shared";
 import { formatResumeDate } from "../lib/date";
-import { CONTACT_META, footerItems, orderedSections } from "../types";
+import { CONTACT_META, orderedSections } from "../types";
 import { saveText, safeBaseName } from "./save";
 
 export function resumeToText(resume: Resume): string {
@@ -65,12 +65,14 @@ export function resumeToText(resume: Resume): string {
       }
     },
     footer: () => {
-      if (!(resume.footer.enabled && resume.footer.content.trim())) return;
+      if (!(resume.footer.enabled && resume.footer.entries.length > 0)) return;
       heading(resume.footer.title || "Interests");
-      if (resume.footer.style === "list") {
-        for (const it of footerItems(resume.footer)) lines.push(`- ${it}`);
-      } else {
-        lines.push(resume.footer.content);
+      for (const e of resume.footer.entries) {
+        lines.push("");
+        const date = e.showDate ? `  (${dateRange(e.startDate, e.endDate)})` : "";
+        if (e.header.trim() || date) lines.push(`${e.header}${date}`);
+        if (e.subheader?.trim()) lines.push(e.subheader);
+        for (const b of e.bullets.filter((x) => x.trim())) lines.push(`  - ${b}`);
       }
     },
   };

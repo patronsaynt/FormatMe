@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import type { Resume, SectionKey } from "../types";
-import { footerItems, orderedSections } from "../types";
+import { orderedSections } from "../types";
 import { fontFamilyFor, visibleContacts, dateRange, shade, workLocation, metrics, certificationLabel } from "./shared";
 import { formatResumeDate } from "../lib/date";
 
@@ -53,7 +53,6 @@ export default function Modern({ resume }: { resume: Resume }) {
     bulletRow: { flexDirection: "row", marginTop: sp(2.5) },
     bulletDot: { width: fs(11), fontSize: fs(9), color: accent },
     bulletText: { flex: 1, fontSize: fs(9.5), color: "#2b2b2b" },
-    footerText: { fontSize: fs(9.5), color: "#333" },
   });
 
   const Section = ({ title, children }: { title: string; children: ReactNode }) => (
@@ -124,18 +123,29 @@ export default function Modern({ resume }: { resume: Resume }) {
         </Section>
       ) : null,
     footer:
-      resume.footer.enabled && resume.footer.content.trim() ? (
+      resume.footer.enabled && resume.footer.entries.length > 0 ? (
         <Section title={resume.footer.title || "Interests"}>
-          {resume.footer.style === "list" ? (
-            footerItems(resume.footer).map((it, i) => (
-              <View key={i} style={s.bulletRow}>
-                <Text style={s.bulletDot}>▪</Text>
-                <Text style={s.bulletText}>{it}</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={s.footerText}>{resume.footer.content}</Text>
-          )}
+          {resume.footer.entries.map((entry) => (
+            <View key={entry.id} style={s.entry}>
+              {entry.header.trim() || entry.showDate ? (
+                <View style={s.entryHeader}>
+                  <Text style={s.role}>{entry.header}</Text>
+                  {entry.showDate ? (
+                    <Text style={s.meta}>{dateRange(entry.startDate, entry.endDate)}</Text>
+                  ) : null}
+                </View>
+              ) : null}
+              {entry.subheader?.trim() ? <Text style={s.org}>{entry.subheader}</Text> : null}
+              {entry.bullets
+                .filter((b) => b.trim())
+                .map((b, i) => (
+                  <View key={i} style={s.bulletRow}>
+                    <Text style={s.bulletDot}>▪</Text>
+                    <Text style={s.bulletText}>{b}</Text>
+                  </View>
+                ))}
+            </View>
+          ))}
         </Section>
       ) : null,
   };

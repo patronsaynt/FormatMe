@@ -158,6 +158,22 @@ function isContactLine(text: string): boolean {
   );
 }
 
+// ---------- text cleanup ----------
+
+/**
+ * Strip the leftovers of pulling a date/location out of a line: an empty
+ * "()" when the parens held nothing but the date (e.g. "Acme Inc (2021)" →
+ * "Acme Inc ()"), and dangling separator punctuation at either edge.
+ */
+function tidyText(s: string): string {
+  return s
+    .replace(/\(\s*\)/g, "")
+    .replace(/^[\s,·|—–-]+/, "")
+    .replace(/[\s,·|—–-]+$/, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 // ---------- dates ----------
 
 const MONTH = "(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\\.?";
@@ -184,7 +200,7 @@ function parseDateRange(text: string): DateParse {
       start: parseLegacyDate(r[1]),
       end: current ? {} : parseLegacyDate(r[2]),
       current,
-      clean: text.replace(r[0], "").replace(/[|·•]/g, " ").trim(),
+      clean: tidyText(text.replace(r[0], "")),
     };
   }
   const s = text.match(RE_SINGLE);
@@ -194,7 +210,7 @@ function parseDateRange(text: string): DateParse {
       start: parseLegacyDate(s[0]),
       end: {},
       current: false,
-      clean: text.replace(s[0], "").replace(/[|·•]/g, " ").trim(),
+      clean: tidyText(text.replace(s[0], "")),
     };
   }
   return { matched: false, start: {}, end: {}, current: false, clean: text };
@@ -274,9 +290,6 @@ function splitTitleCompany(line: string): { a: string; b?: string } {
   return { a: line.trim() };
 }
 
-const TRIM_SEP = (s: string) =>
-  s.replace(/^\s*[·|—–\-•]\s*/, "").replace(/\s*[·|—–\-•]\s*$/, "").trim();
-
 /** Pull a "City, ST" out of header parts, keeping the rest of each line. */
 function pluckLocation(parts: string[]): { location?: string; rest: string[] } {
   const rest: string[] = [];
@@ -285,7 +298,7 @@ function pluckLocation(parts: string[]): { location?: string; rest: string[] } {
     const m = p.match(RE_LOCATION);
     if (m && !location) {
       location = `${m[1]}, ${m[2]}`;
-      const stripped = TRIM_SEP(p.replace(m[0], ""));
+      const stripped = tidyText(p.replace(m[0], ""));
       if (stripped) rest.push(stripped);
     } else {
       rest.push(p);
@@ -294,20 +307,30 @@ function pluckLocation(parts: string[]): { location?: string; rest: string[] } {
   return { location, rest };
 }
 
+// Common job-title words — used to tell which of two unseparated header lines
+// is the role vs. the employer when a template stacks them ("Acme Inc" above
+// "Marketing Manager") instead of joining them on one line.
+const TITLE_WORDS =
+  /\b(manager|coordinator|director|specialist|associate|analyst|engineer|developer|designer|intern|lead|supervisor|representative|consultant|administrator|technician|assistant|officer|executive|strategist|architect|scientist|researcher|producer|editor|writer|recruiter|accountant|nurse|teacher|instructor|trainer|planner|advisor|agent|clerk|cashier)\b/i;
+
 function toWork(raw: RawEntry): WorkExperience {
   const remote = raw.headerLines.some((l) => /\bremote\b/i.test(l));
   const { location, rest } = pluckLocation(raw.headerLines);
   let title = "";
   let company = "";
   if (rest.length >= 2) {
-    title = rest[0];
-    company = rest[1];
+    // Two separate lines with no clear order cue — guess which one names the
+    // role by checking for common title words, rather than assuming line 0
+    // is always the title (some templates put the employer name first).
+    const swap = !TITLE_WORDS.test(rest[0]) && TITLE_WORDS.test(rest[1]);
+    title = swap ? rest[1] : rest[0];
+    company = swap ? rest[0] : rest[1];
   } else if (rest.length === 1) {
     const { a, b } = splitTitleCompany(rest[0]);
     title = a;
     company = b ?? "";
   }
-  if (remote) company = TRIM_SEP(company.replace(/\bremote\b/i, ""));
+  if (remote) company = tidyText(company.replace(/\bremote\b/i, ""));
   return {
     id: uid(),
     title,
@@ -321,28 +344,58 @@ function toWork(raw: RawEntry): WorkExperience {
   };
 }
 
-const DEGREE_RE = /\b(B\.?S\.?|B\.?A\.?|M\.?S\.?|M\.?A\.?|M\.?B\.?A\.?|Ph\.?D\.?|Bachelor|Master|Associate|Doctor|Diploma)\b/i;
+// Note: a trailing `\b` would fail right after an abbreviation's optional
+// final period when followed by whitespace (both "." and " " are non-word
+// chars, so no boundary exists there) — use a "not a letter" lookahead
+// instead so "B.A. Communications" matches the full "B.A." abbreviation.
+const DEGREE_RE =
+  /\b(A\.?A\.?S\.?|B\.?B\.?A\.?|B\.?F\.?A\.?|M\.?B\.?A\.?|M\.?F\.?A\.?|Ph\.?D\.?|Ed\.?D\.?|LL\.?B\.?|LL\.?M\.?|A\.?A\.?|A\.?S\.?|B\.?A\.?|B\.?S\.?|M\.?A\.?|M\.?S\.?|J\.?D\.?|M\.?D\.?|Bachelor'?s?|Master'?s?|Associate'?s?|Doctor(?:ate)?|Diploma|Certificate)(?![A-Za-z])/i;
+const SCHOOL_RE = /university|college|institute|school|academy/i;
 
 function toEducation(raw: RawEntry): Education {
   const lines = [...raw.headerLines, ...raw.bullets];
-  const { location } = pluckLocation(raw.headerLines);
-  const schoolLine =
-    raw.headerLines.find((l) => /university|college|institute|school|academy/i.test(l)) ??
-    raw.headerLines[0] ??
-    "";
-  const degreeLine = lines.find((l) => DEGREE_RE.test(l)) ?? "";
+  const { location, rest } = pluckLocation(raw.headerLines);
+
+  // The school's name and the degree/field often share one comma-separated
+  // line ("B.A. in Communications, Lakeview College") — split that line
+  // instead of dumping the whole thing into `school`. When they're on
+  // separate lines instead, each line already names just one of the two.
+  const schoolHostLine = rest.find((l) => SCHOOL_RE.test(l));
+  let schoolLine = schoolHostLine ?? rest[0] ?? "";
+  let degreeText = "";
+  if (schoolHostLine) {
+    const segs = schoolHostLine.split(/\s*,\s*/).map((s) => s.trim()).filter(Boolean);
+    const schoolSeg = segs.find((s) => SCHOOL_RE.test(s)) ?? schoolHostLine;
+    schoolLine = schoolSeg;
+    degreeText = segs.filter((s) => s !== schoolSeg).join(", ");
+  }
+  if (!degreeText) {
+    degreeText = lines.find((l) => l !== schoolHostLine && DEGREE_RE.test(l)) ?? "";
+  }
+
   let degree = "";
   let fieldStr = "";
-  if (degreeLine) {
-    const degreeClean = degreeLine.replace(/GPA[:\s]*[0-4]\.\d{1,2}/i, "").trim();
-    const split = degreeClean.split(/\s+in\s+|,\s*/i).map((p) => p.trim());
-    degree = split[0] ?? "";
-    fieldStr = split[1] ?? "";
+  if (degreeText) {
+    const degreeClean = tidyText(degreeText.replace(/GPA[:\s]*[0-4]\.\d{1,2}/i, ""));
+    const inSplit = degreeClean.split(/\s+in\s+/i).map((p) => p.trim()).filter(Boolean);
+    if (inSplit.length >= 2) {
+      degree = inSplit[0];
+      fieldStr = inSplit.slice(1).join(" in ");
+    } else {
+      const m = degreeClean.match(DEGREE_RE);
+      if (m) {
+        degree = m[0];
+        fieldStr = tidyText(degreeClean.slice(m.index! + m[0].length));
+      } else {
+        degree = degreeClean;
+      }
+    }
   }
+
   const gpaMatch = lines.join(" ").match(/GPA[:\s]*([0-4]\.\d{1,2})/i);
   return {
     id: uid(),
-    school: schoolLine,
+    school: tidyText(schoolLine),
     degree,
     field: fieldStr,
     location: location ?? "",
@@ -356,7 +409,7 @@ function toEducation(raw: RawEntry): Education {
 function toCertification(text: string): Certification {
   const dateMatch = text.match(RE_SINGLE);
   const date = dateMatch ? parseLegacyDate(dateMatch[0]) : {};
-  const withoutDate = dateMatch ? text.replace(dateMatch[0], "").trim() : text;
+  const withoutDate = dateMatch ? tidyText(text.replace(dateMatch[0], "")) : text;
   const parts = withoutDate.split(/\s+(?:—|–|\||·|-)\s+|\s*,\s*/).map((p) => p.trim()).filter(Boolean);
   return {
     id: uid(),
@@ -466,8 +519,19 @@ export function linesToResume(lines: TextLine[]): {
     footer: {
       enabled: interestsText.length > 0,
       title: "Interests",
-      content: interestsText,
-      style: "paragraph",
+      entries: interestsText
+        ? [
+            {
+              id: uid(),
+              header: "",
+              subheader: "",
+              showDate: false,
+              startDate: {},
+              endDate: {},
+              bullets: [interestsText],
+            },
+          ]
+        : [],
     },
     sectionOrder: [...DEFAULT_SECTION_ORDER],
     meta: {

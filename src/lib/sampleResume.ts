@@ -15,8 +15,7 @@ export function makeBlankResume(): Resume {
     footer: {
       enabled: false,
       title: "Interests",
-      content: "",
-      style: "paragraph",
+      entries: [],
     },
     sectionOrder: [...DEFAULT_SECTION_ORDER],
     meta: {
@@ -38,7 +37,10 @@ export function cloneResumeWithFreshIds(resume: Resume): Resume {
     work: resume.work.map((w) => ({ ...w, id: uid(), bullets: [...w.bullets] })),
     education: resume.education.map((e) => ({ ...e, id: uid(), details: [...e.details] })),
     certifications: resume.certifications.map((c) => ({ ...c, id: uid() })),
-    footer: { ...resume.footer },
+    footer: {
+      ...resume.footer,
+      entries: resume.footer.entries.map((e) => ({ ...e, id: uid(), bullets: [...e.bullets] })),
+    },
     sectionOrder: [...resume.sectionOrder],
     meta: { ...resume.meta },
   };
@@ -113,8 +115,29 @@ export function makeSampleResume(): Resume {
     footer: {
       enabled: true,
       title: "Interests",
-      content: "Typography, trail running, film photography, and specialty coffee.",
-      style: "paragraph",
+      entries: [
+        {
+          id: uid(),
+          header: "Side Projects",
+          subheader: "Independent & open-source",
+          showDate: false,
+          startDate: {},
+          endDate: {},
+          bullets: [
+            "Maintain an open-source design-tokens library used by 200+ repos.",
+            "Built a weekend app for tracking trail-running routes.",
+          ],
+        },
+        {
+          id: uid(),
+          header: "",
+          subheader: "",
+          showDate: false,
+          startDate: {},
+          endDate: {},
+          bullets: ["Typography, trail running, film photography, and specialty coffee."],
+        },
+      ],
     },
     sectionOrder: [...DEFAULT_SECTION_ORDER],
     meta: {
